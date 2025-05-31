@@ -1,19 +1,41 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Notebook, Note, Tag
+from .models import Notebook, Note, Tag, UserProfile
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['photo']
 
 class RegisterSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField(required=False)
+    
     class Meta:
         model = User
-        fields = ('username', 'password')
+        fields = ('username', 'password', 'photo')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
+        photo = validated_data.pop('photo', None)
         user = User.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password']
         )
+        
+        # Create user profile with photo if provided
+        profile = UserProfile.objects.create(user=user)
+        if photo:
+            profile.photo = photo
+            profile.save()
+            
         return user
+
+class UserSerializer(serializers.ModelSerializer):
+    profile = UserProfileSerializer()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'profile')
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:

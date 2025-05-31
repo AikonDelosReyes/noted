@@ -1,11 +1,12 @@
 # Noted - A Note Management API
 
-A Django REST Framework API for managing notes, notebooks, and tags with JWT authentication and rate limiting.
+A Django REST Framework API for managing notes, notebooks, and tags with JWT authentication, rate limiting, and profile photo management.
 
 ## Features
 
 - User authentication using JWT tokens
 - Rate limiting for API endpoints
+- Profile photo upload with automatic square cropping
 - CRUD operations for Notebooks, Notes, and Tags
 - Proper error handling and authentication checks
 - Relationship management between Notes, Tags, and Notebooks
@@ -43,25 +44,64 @@ When rate limit is exceeded, the API returns:
 }
 ```
 
-### Authentication
+### Authentication and Profile Management
 
 All endpoints except registration and token generation require JWT authentication.
 Include the token in the Authorization header: `Authorization: Bearer <your_token>`
 
-#### Register a new user
+#### Register a new user with photo
 - **POST** `/api/users/register/`
 - **Rate Limit**: 3 requests per minute
+- **Content-Type**: `multipart/form-data`
 - **Body**:
-```json
-{
-    "username": "your_username",
-    "password": "your_password"
-}
-```
+  - `username`: string
+  - `password`: string
+  - `photo`: file (optional, max 2MB, JPEG/PNG/WebP)
 - **Response**: 201 Created
 ```json
 {
-    "message": "User registered successfully!"
+    "message": "User registered successfully!",
+    "user": {
+        "id": 1,
+        "username": "your_username",
+        "profile": {
+            "photo": "/media/profile_photos/your_photo.jpg"
+        }
+    }
+}
+```
+
+#### Get user profile
+- **GET** `/api/users/profile/`
+- **Rate Limit**: 20 requests per minute
+- **Headers Required**: Authorization
+- **Response**: 200 OK
+```json
+{
+    "id": 1,
+    "username": "your_username",
+    "profile": {
+        "photo": "/media/profile_photos/your_photo.jpg"
+    }
+}
+```
+
+#### Update profile photo
+- **PATCH** `/api/users/profile/`
+- **Rate Limit**: 20 requests per minute
+- **Headers Required**: 
+  - Authorization
+  - Content-Type: multipart/form-data
+- **Body**:
+  - `photo`: file (max 2MB, JPEG/PNG/WebP)
+- **Response**: 200 OK
+```json
+{
+    "id": 1,
+    "username": "your_username",
+    "profile": {
+        "photo": "/media/profile_photos/new_photo.jpg"
+    }
 }
 ```
 
@@ -236,7 +276,7 @@ Include the token in the Authorization header: `Authorization: Bearer <your_toke
 
 The API returns appropriate HTTP status codes and error messages:
 
-- 400 Bad Request: Invalid input
+- 400 Bad Request: Invalid input or file validation error
 - 401 Unauthorized: Missing or invalid authentication
 - 403 Forbidden: Insufficient permissions
 - 404 Not Found: Resource not found
@@ -252,10 +292,24 @@ Example rate limit error response:
 }
 ```
 
+Example file validation error response:
+```json
+{
+    "photo": [
+        "File size must be less than 2MB.",
+        "Unsupported file extension. Please use JPEG, PNG, or WebP."
+    ]
+}
+```
+
 ## Security
 
 - All endpoints (except registration and token generation) require JWT authentication
 - Rate limiting implemented to prevent API abuse
+- File upload restrictions:
+  - Maximum file size: 2MB
+  - Allowed formats: JPEG, PNG, WebP
+  - Automatic square cropping
 - Users can only access their own notebooks, notes, and tags
 - Passwords are securely hashed
 - JWT tokens expire after a set time

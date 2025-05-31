@@ -5,7 +5,8 @@ from .views import (
     ProtectedView,
     NotebookViewSet,
     NoteViewSet,
-    TagViewSet
+    TagViewSet,
+    UserProfileView
 )
 
 router = DefaultRouter()
@@ -16,5 +17,6 @@ router.register(r'tags', TagViewSet, basename='tag')
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('protected/', ProtectedView.as_view(), name='protected'),
+    path('profile/', UserProfileView.as_view(), name='profile'),
     path('', include(router.urls)),
 ]
