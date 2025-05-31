@@ -1,10 +1,11 @@
 # Noted - A Note Management API
 
-A Django REST Framework API for managing notes, notebooks, and tags with JWT authentication.
+A Django REST Framework API for managing notes, notebooks, and tags with JWT authentication and rate limiting.
 
 ## Features
 
 - User authentication using JWT tokens
+- Rate limiting for API endpoints
 - CRUD operations for Notebooks, Notes, and Tags
 - Proper error handling and authentication checks
 - Relationship management between Notes, Tags, and Notebooks
@@ -22,6 +23,26 @@ A Django REST Framework API for managing notes, notebooks, and tags with JWT aut
 
 ## API Documentation
 
+### Rate Limiting
+
+The API implements rate limiting to prevent abuse. Different limits apply to authenticated and anonymous users:
+
+- Anonymous users: 5 requests per minute
+- Authenticated users: 20 requests per minute
+- Registration endpoint: 3 requests per minute
+- Protected view: 10 requests per minute
+
+When rate limit is exceeded, the API returns:
+- Status code: 429 Too Many Requests
+- Response body:
+```json
+{
+    "error": "Too many requests",
+    "detail": "Please wait before making another request. Maximum X requests per Y seconds.",
+    "retry_after": seconds_to_wait
+}
+```
+
 ### Authentication
 
 All endpoints except registration and token generation require JWT authentication.
@@ -29,6 +50,7 @@ Include the token in the Authorization header: `Authorization: Bearer <your_toke
 
 #### Register a new user
 - **POST** `/api/users/register/`
+- **Rate Limit**: 3 requests per minute
 - **Body**:
 ```json
 {
@@ -45,6 +67,7 @@ Include the token in the Authorization header: `Authorization: Bearer <your_toke
 
 #### Get JWT Token
 - **POST** `/api/token/`
+- **Rate Limit**: 5 requests per minute (anonymous)
 - **Body**:
 ```json
 {
@@ -64,6 +87,8 @@ Include the token in the Authorization header: `Authorization: Bearer <your_toke
 
 #### List all notebooks
 - **GET** `/api/users/notebooks/`
+- **Rate Limit**: 20 requests per minute
+- **Headers Required**: Authorization
 - **Response**: 200 OK
 ```json
 [
@@ -215,19 +240,22 @@ The API returns appropriate HTTP status codes and error messages:
 - 401 Unauthorized: Missing or invalid authentication
 - 403 Forbidden: Insufficient permissions
 - 404 Not Found: Resource not found
+- 429 Too Many Requests: Rate limit exceeded
 - 500 Internal Server Error: Server-side error
 
-Example error response:
+Example rate limit error response:
 ```json
 {
-    "error": "Invalid credentials provided",
-    "status_code": 401
+    "error": "Too many requests",
+    "detail": "Please wait before making another request. Maximum 20 requests per 60 seconds.",
+    "retry_after": 30
 }
 ```
 
 ## Security
 
 - All endpoints (except registration and token generation) require JWT authentication
+- Rate limiting implemented to prevent API abuse
 - Users can only access their own notebooks, notes, and tags
 - Passwords are securely hashed
 - JWT tokens expire after a set time
