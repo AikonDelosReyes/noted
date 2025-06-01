@@ -1,317 +1,143 @@
-# Noted - A Note Management API
+# Noted - Django REST API Note-Taking Application
 
-A Django REST Framework API for managing notes, notebooks, and tags with JWT authentication, rate limiting, and profile photo management.
+A modern, feature-rich note-taking application built with Django REST Framework, featuring JWT authentication, rate limiting, and a beautiful responsive UI.
 
 ## Features
 
-- User authentication using JWT tokens
-- Rate limiting for API endpoints
-- Profile photo upload with automatic square cropping
-- CRUD operations for Notebooks, Notes, and Tags
-- Proper error handling and authentication checks
-- Relationship management between Notes, Tags, and Notebooks
+### Authentication & User Management
+- JWT-based authentication system
+- User registration with profile photo upload
+- Secure password handling
+- Profile photo validation and automatic square cropping
+- Support for JPEG, PNG, and WebP formats (max 2MB)
 
-## Setup
+### Note Management
+- Create, read, update, and delete notebooks
+- Organize notes within notebooks
+- Tag system for better note organization
+- Rich text editing capabilities
+- Search functionality
 
-1. Clone the repository
-2. Create a virtual environment: `python -m venv venv`
-3. Activate the virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - Unix/MacOS: `source venv/bin/activate`
-4. Install dependencies: `pip install -r requirements.txt`
-5. Run migrations: `python manage.py migrate`
-6. Start the development server: `python manage.py runserver`
+### API Rate Limiting
+- Custom rate limiting implementation
+- Different limits for anonymous and authenticated users
+- DRF's built-in throttling mechanism
+- Protection against abuse and DoS attacks
 
-## API Documentation
+### Modern UI Features
+- Responsive design for all screen sizes
+- Sidebar navigation system
+- Card-based layout
+- Interactive elements
+- Modern color scheme
+- Form validation with instant feedback
+- Image upload preview
+- Bootstrap and Font Awesome integration
 
-### Rate Limiting
+## Technical Stack
 
-The API implements rate limiting to prevent abuse. Different limits apply to authenticated and anonymous users:
+- **Backend**: Django REST Framework
+- **Database**: SQLite (default), compatible with PostgreSQL
+- **Authentication**: JWT (JSON Web Tokens)
+- **Frontend**: 
+  - HTML5/CSS3
+  - Bootstrap 5
+  - Font Awesome icons
+  - JavaScript
+- **Image Processing**: Pillow
 
-- Anonymous users: 5 requests per minute
-- Authenticated users: 20 requests per minute
-- Registration endpoint: 3 requests per minute
-- Protected view: 10 requests per minute
+## Installation
 
-When rate limit is exceeded, the API returns:
-- Status code: 429 Too Many Requests
-- Response body:
-```json
-{
-    "error": "Too many requests",
-    "detail": "Please wait before making another request. Maximum X requests per Y seconds.",
-    "retry_after": seconds_to_wait
-}
+1. Clone the repository:
+```bash
+git clone https://github.com/AikonDelosReyes/noted.git
+cd noted
 ```
 
-### Authentication and Profile Management
-
-All endpoints except registration and token generation require JWT authentication.
-Include the token in the Authorization header: `Authorization: Bearer <your_token>`
-
-#### Register a new user with photo
-- **POST** `/api/users/register/`
-- **Rate Limit**: 3 requests per minute
-- **Content-Type**: `multipart/form-data`
-- **Body**:
-  - `username`: string
-  - `password`: string
-  - `photo`: file (optional, max 2MB, JPEG/PNG/WebP)
-- **Response**: 201 Created
-```json
-{
-    "message": "User registered successfully!",
-    "user": {
-        "id": 1,
-        "username": "your_username",
-        "profile": {
-            "photo": "/media/profile_photos/your_photo.jpg"
-        }
-    }
-}
+2. Create and activate a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-#### Get user profile
-- **GET** `/api/users/profile/`
-- **Rate Limit**: 20 requests per minute
-- **Headers Required**: Authorization
-- **Response**: 200 OK
-```json
-{
-    "id": 1,
-    "username": "your_username",
-    "profile": {
-        "photo": "/media/profile_photos/your_photo.jpg"
-    }
-}
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
 ```
 
-#### Update profile photo
-- **PATCH** `/api/users/profile/`
-- **Rate Limit**: 20 requests per minute
-- **Headers Required**: 
-  - Authorization
-  - Content-Type: multipart/form-data
-- **Body**:
-  - `photo`: file (max 2MB, JPEG/PNG/WebP)
-- **Response**: 200 OK
-```json
-{
-    "id": 1,
-    "username": "your_username",
-    "profile": {
-        "photo": "/media/profile_photos/new_photo.jpg"
-    }
-}
+4. Apply migrations:
+```bash
+python manage.py migrate
 ```
 
-#### Get JWT Token
-- **POST** `/api/token/`
-- **Rate Limit**: 5 requests per minute (anonymous)
-- **Body**:
-```json
-{
-    "username": "your_username",
-    "password": "your_password"
-}
-```
-- **Response**: 200 OK
-```json
-{
-    "access": "your.jwt.token",
-    "refresh": "your.refresh.token"
-}
+5. Create a superuser (admin):
+```bash
+python manage.py createsuperuser
 ```
 
-### Notebooks
-
-#### List all notebooks
-- **GET** `/api/users/notebooks/`
-- **Rate Limit**: 20 requests per minute
-- **Headers Required**: Authorization
-- **Response**: 200 OK
-```json
-[
-    {
-        "id": 1,
-        "title": "Work Notes",
-        "description": "All work-related notes",
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
-]
+6. Run the development server:
+```bash
+python manage.py runserver
 ```
 
-#### Create a notebook
-- **POST** `/api/users/notebooks/`
-- **Body**:
-```json
-{
-    "title": "Work Notes",
-    "description": "All work-related notes"
-}
-```
-- **Response**: 201 Created
+The application will be available at `http://localhost:8000`
 
-#### Get a single notebook
-- **GET** `/api/users/notebooks/{id}/`
-- **Response**: 200 OK
+## API Endpoints
 
-#### Update a notebook
-- **PUT/PATCH** `/api/users/notebooks/{id}/`
-- **Body**:
-```json
-{
-    "title": "Updated Title",
-    "description": "Updated description"
-}
-```
-- **Response**: 200 OK
-
-#### Delete a notebook
-- **DELETE** `/api/users/notebooks/{id}/`
-- **Response**: 204 No Content
+### Authentication
+- `POST /api/token/` - Obtain JWT token
+- `POST /api/token/refresh/` - Refresh JWT token
+- `POST /api/register/` - Register new user
 
 ### Notes
-
-#### List all notes
-- **GET** `/api/users/notes/`
-- **Response**: 200 OK
-```json
-[
-    {
-        "id": 1,
-        "title": "Meeting Notes",
-        "content": "Important points from the meeting",
-        "notebook": 1,
-        "tags": [
-            {
-                "id": 1,
-                "name": "work"
-            }
-        ],
-        "created_at": "2024-03-20T10:00:00Z",
-        "updated_at": "2024-03-20T10:00:00Z"
-    }
-]
-```
-
-#### Create a note
-- **POST** `/api/users/notes/`
-- **Body**:
-```json
-{
-    "title": "Meeting Notes",
-    "content": "Important points from the meeting",
-    "notebook": 1,
-    "tag_ids": [1, 2]
-}
-```
-- **Response**: 201 Created
-
-#### Get a single note
-- **GET** `/api/users/notes/{id}/`
-- **Response**: 200 OK
-
-#### Update a note
-- **PUT/PATCH** `/api/users/notes/{id}/`
-- **Body**:
-```json
-{
-    "title": "Updated Title",
-    "content": "Updated content",
-    "tag_ids": [1, 3]
-}
-```
-- **Response**: 200 OK
-
-#### Delete a note
-- **DELETE** `/api/users/notes/{id}/`
-- **Response**: 204 No Content
+- `GET /api/notebooks/` - List all notebooks
+- `POST /api/notebooks/` - Create new notebook
+- `GET /api/notebooks/{id}/` - Retrieve notebook
+- `PUT /api/notebooks/{id}/` - Update notebook
+- `DELETE /api/notebooks/{id}/` - Delete notebook
+- `GET /api/notes/` - List all notes
+- `POST /api/notes/` - Create new note
+- `GET /api/notes/{id}/` - Retrieve note
+- `PUT /api/notes/{id}/` - Update note
+- `DELETE /api/notes/{id}/` - Delete note
 
 ### Tags
+- `GET /api/tags/` - List all tags
+- `POST /api/tags/` - Create new tag
+- `GET /api/tags/{id}/` - Retrieve tag
+- `PUT /api/tags/{id}/` - Update tag
+- `DELETE /api/tags/{id}/` - Delete tag
 
-#### List all tags
-- **GET** `/api/users/tags/`
-- **Response**: 200 OK
-```json
-[
-    {
-        "id": 1,
-        "name": "work",
-        "created_at": "2024-03-20T10:00:00Z"
-    }
-]
-```
+## Rate Limiting
 
-#### Create a tag
-- **POST** `/api/users/tags/`
-- **Body**:
-```json
-{
-    "name": "work"
-}
-```
-- **Response**: 201 Created
+- Anonymous users: 100 requests per hour
+- Authenticated users: 1000 requests per hour
+- Throttling applies to all API endpoints
 
-#### Get a single tag
-- **GET** `/api/users/tags/{id}/`
-- **Response**: 200 OK
+## Security Features
 
-#### Update a tag
-- **PUT/PATCH** `/api/users/tags/{id}/`
-- **Body**:
-```json
-{
-    "name": "updated-tag"
-}
-```
-- **Response**: 200 OK
+- JWT token authentication
+- Password hashing
+- CSRF protection
+- XSS prevention
+- Secure file upload handling
+- Rate limiting
+- Input validation
 
-#### Delete a tag
-- **DELETE** `/api/users/tags/{id}/`
-- **Response**: 204 No Content
+## Contributing
 
-## Error Handling
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-The API returns appropriate HTTP status codes and error messages:
+## License
 
-- 400 Bad Request: Invalid input or file validation error
-- 401 Unauthorized: Missing or invalid authentication
-- 403 Forbidden: Insufficient permissions
-- 404 Not Found: Resource not found
-- 429 Too Many Requests: Rate limit exceeded
-- 500 Internal Server Error: Server-side error
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Example rate limit error response:
-```json
-{
-    "error": "Too many requests",
-    "detail": "Please wait before making another request. Maximum 20 requests per 60 seconds.",
-    "retry_after": 30
-}
-```
+## Acknowledgments
 
-Example file validation error response:
-```json
-{
-    "photo": [
-        "File size must be less than 2MB.",
-        "Unsupported file extension. Please use JPEG, PNG, or WebP."
-    ]
-}
-```
-
-## Security
-
-- All endpoints (except registration and token generation) require JWT authentication
-- Rate limiting implemented to prevent API abuse
-- File upload restrictions:
-  - Maximum file size: 2MB
-  - Allowed formats: JPEG, PNG, WebP
-  - Automatic square cropping
-- Users can only access their own notebooks, notes, and tags
-- Passwords are securely hashed
-- JWT tokens expire after a set time
-- CSRF protection enabled
-- Input validation and sanitization implemented 
+- Django REST Framework documentation
+- Bootstrap documentation
+- Font Awesome icons 
