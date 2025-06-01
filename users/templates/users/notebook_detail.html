@@ -1,0 +1,370 @@
+{% extends 'users/base.html' %}
+
+{% block title %}{{ notebook.title }} - Noted{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Notebook Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'notebooks' %}">Notebooks</a></li>
+                    <li class="breadcrumb-item active">{{ notebook.title }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-4">{{ notebook.title }}</h1>
+                    <p class="lead text-muted">{{ notebook.description|default:"No description" }}</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newNoteModal">
+                        <i class="fas fa-plus"></i> New Note
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="editNotebook({{ notebook.id }})">
+                        <i class="fas fa-edit"></i> Edit Notebook
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notebook Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Notes</h5>
+                    <h2 class="card-text">{{ notebook.notes.count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Created</h5>
+                    <p class="card-text">{{ notebook.created_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Last Updated</h5>
+                    <p class="card-text">{{ notebook.updated_at|date:"M d, Y" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Unique Tags</h5>
+                    <h2 class="card-text">{{ notebook.notes.values_list('tags__name', flat=True)|unique|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes List -->
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">Notes</h3>
+                        <div class="input-group" style="max-width: 300px;">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="noteSearch" placeholder="Search notes...">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Tags</th>
+                                    <th>Created</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for note in notebook.notes.all %}
+                                <tr>
+                                    <td>
+                                        <a href="#" onclick="viewNote({{ note.id }})" class="text-decoration-none">
+                                            {{ note.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% for tag in note.tags.all %}
+                                        <span class="badge bg-secondary">{{ tag.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ note.created_at|date:"M d, Y" }}</td>
+                                    <td>{{ note.updated_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editNote({{ note.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteNote({{ note.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="alert alert-info mb-0">
+                                            <i class="fas fa-info-circle"></i> No notes in this notebook yet.
+                                            <a href="#" data-bs-toggle="modal" data-bs-target="#newNoteModal">Create your first note</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Note Modal -->
+<div class="modal fade" id="newNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newNoteForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Content</label>
+                        <textarea class="form-control" name="content" rows="5" required></textarea>
+                    </div>
+                    <input type="hidden" name="notebook" value="{{ notebook.id }}">
+                    <div class="mb-3">
+                        <label class="form-label">Tags</label>
+                        <select class="form-select" name="tags" multiple>
+                            {% for tag in tags %}
+                            <option value="{{ tag.id }}">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Hold Ctrl/Cmd to select multiple tags</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNote()">Create Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Note Modal -->
+<div class="modal fade" id="viewNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewNoteTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="viewNoteContent"></div>
+                <div class="mt-3">
+                    <small class="text-muted">Tags:</small>
+                    <div id="viewNoteTags"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Note operations
+    function saveNote() {
+        const form = document.getElementById('newNoteForm');
+        const formData = new FormData(form);
+        const data = {
+            title: formData.get('title'),
+            content: formData.get('content'),
+            notebook: formData.get('notebook'),
+            tag_ids: Array.from(form.querySelector('select[name="tags"]').selectedOptions).map(opt => opt.value)
+        };
+        
+        fetch('/users/api/notes/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            location.reload();
+        })
+        .catch(error => {
+            alert('Error creating note: ' + error.message);
+            console.error('Error:', error);
+        });
+    }
+
+    function viewNote(noteId) {
+        fetch(`/users/api/notes/${noteId}/`)
+        .then(response => response.json())
+        .then(note => {
+            document.getElementById('viewNoteTitle').textContent = note.title;
+            document.getElementById('viewNoteContent').textContent = note.content;
+            const tagsHtml = note.tags.map(tag => 
+                `<span class="badge bg-secondary me-1">${tag.name}</span>`
+            ).join('');
+            document.getElementById('viewNoteTags').innerHTML = tagsHtml;
+            new bootstrap.Modal(document.getElementById('viewNoteModal')).show();
+        })
+        .catch(error => {
+            alert('Error loading note');
+            console.error('Error:', error);
+        });
+    }
+
+    function editNote(noteId) {
+        fetch(`/users/api/notes/${noteId}/`)
+        .then(response => response.json())
+        .then(note => {
+            const form = document.getElementById('newNoteForm');
+            form.querySelector('input[name="title"]').value = note.title;
+            form.querySelector('textarea[name="content"]').value = note.content;
+            form.querySelector('input[name="notebook"]').value = note.notebook;
+            
+            // Set selected tags
+            const tagSelect = form.querySelector('select[name="tags"]');
+            Array.from(tagSelect.options).forEach(option => {
+                option.selected = note.tags.some(tag => tag.id === parseInt(option.value));
+            });
+            
+            // Change modal title and button
+            document.querySelector('#newNoteModal .modal-title').textContent = 'Edit Note';
+            const saveButton = document.querySelector('#newNoteModal .btn-primary');
+            saveButton.textContent = 'Save Changes';
+            saveButton.onclick = () => updateNote(noteId);
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('newNoteModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading note');
+        });
+    }
+
+    function updateNote(noteId) {
+        const form = document.getElementById('newNoteForm');
+        const data = {
+            title: form.querySelector('input[name="title"]').value,
+            content: form.querySelector('textarea[name="content"]').value,
+            notebook: form.querySelector('input[name="notebook"]').value,
+            tag_ids: Array.from(form.querySelector('select[name="tags"]').selectedOptions).map(opt => parseInt(opt.value))
+        };
+        
+        fetch(`/users/api/notes/${noteId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => Promise.reject(err));
+            }
+            return response.json();
+        })
+        .then(() => {
+            location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating note: ' + (error.detail || 'Unknown error occurred'));
+        });
+    }
+
+    function deleteNote(noteId) {
+        if (confirm('Are you sure you want to delete this note?')) {
+            fetch(`/users/api/notes/${noteId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(() => {
+                location.reload();
+            })
+            .catch(error => {
+                alert('Error deleting note');
+                console.error('Error:', error);
+            });
+        }
+    }
+
+    // Search functionality
+    document.getElementById('noteSearch').addEventListener('input', function(e) {
+        const searchText = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('tbody tr');
+        
+        rows.forEach(row => {
+            const title = row.querySelector('td:first-child').textContent.toLowerCase();
+            const tags = Array.from(row.querySelectorAll('.badge')).map(badge => 
+                badge.textContent.toLowerCase()
+            ).join(' ');
+            
+            if (title.includes(searchText) || tags.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %} 
